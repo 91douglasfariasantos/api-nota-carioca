@@ -1,0 +1,14 @@
+{
+  "name": "api-nota-carioca",
+  "version": "1.0.0",
+  "description": "API Playwright para coleta pública de prestadores da Nota Carioca",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "playwright": "1.62.0"
+  }
+}
