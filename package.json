@@ -1,12 +1,18 @@
 {
   "name": "api-nota-carioca",
-  "version": "1.0.0",
+  "version": "3.0.0",
+  "description": "API em Node.js com Playwright para consultar prestadores na Nota Carioca.",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "check": "node --check server.js"
+  },
+  "engines": {
+    "node": ">=20"
   },
   "dependencies": {
     "express": "^5.1.0",
-    "playwright": "^1.62.0"
+    "playwright": "^1.54.0"
   }
 }
