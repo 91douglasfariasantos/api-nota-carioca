@@ -237,19 +237,33 @@ app.post('/buscar', validarApiKey, async (req, res) => {
                 .trim()
                 .toUpperCase();
 
-            await page
-                .locator('#ctl00_cphCabMenu_ddlBairros')
-                .selectOption({
-                    value: bairroNormalizado
-                });
+            await Promise.all([
+                page.waitForNavigation({
+                    waitUntil: 'domcontentloaded',
+                    timeout: 30000
+                }).catch(() => null),
+
+                page
+                    .locator('#ctl00_cphCabMenu_ddlBairros')
+                    .selectOption({
+                        value: bairroNormalizado
+                    })
+            ]);
+
+            await page.waitForTimeout(1500);
         }
 
-        await page.locator('#ctl00_cphCabMenu_lbConsultar').click();
+        await Promise.all([
+            page.waitForNavigation({
+                waitUntil: 'domcontentloaded',
+                timeout: 60000
+            }).catch(() => null),
 
-        await page.waitForLoadState('domcontentloaded').catch(() => null);
+            page.locator('#ctl00_cphCabMenu_lbConsultar').click()
+        ]);
+
+        await page.waitForLoadState('networkidle').catch(() => null);
         await page.waitForTimeout(3000);
-
-
 
         const dados = await page.evaluate(({ limiteSeguro }) => {
             function limpar(valor) {
@@ -271,6 +285,7 @@ app.post('/buscar', validarApiKey, async (req, res) => {
                     texto: limpar(linha.innerText)
                 };
             });
+
 
             const regexDocumento =
                 /(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})|(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2})/;
