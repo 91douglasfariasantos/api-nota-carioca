@@ -420,9 +420,10 @@ app.post('/buscar', validarApiKey, async (req, res) => {
                         prestador: textoPrestador,
                         cep: cepEncontrado,
                         site: linkSite?.href || null,
+                        email,
                         mapa: linkMapa?.href || null,
                         celulas,
-                        texto: limpar(linha.innerText)
+                        texto: textoCompleto
                     };
                 })
                 .filter(Boolean)
