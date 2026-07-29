@@ -265,6 +265,9 @@ app.post('/buscar', validarApiKey, async (req, res) => {
         await page.waitForLoadState('networkidle').catch(() => null);
         await page.waitForTimeout(3000);
 
+        const html = await page.content();
+        console.log(html);
+
         const dados = await page.evaluate(({ limiteSeguro }) => {
             function limpar(valor) {
                 return String(valor || '')
