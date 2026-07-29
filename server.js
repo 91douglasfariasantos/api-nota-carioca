@@ -265,10 +265,67 @@ app.post('/buscar', validarApiKey, async (req, res) => {
         await page.waitForLoadState('networkidle').catch(() => null);
         await page.waitForTimeout(3000);
 
-        const html = await page.content();
-        console.log(html);
+        const diagnosticoPostback = await page.evaluate(() => {
+            const botao = document.querySelector(
+                '#ctl00_cphCabMenu_lbConsultar'
+            );
+
+            const bairro = document.querySelector(
+                '#ctl00_cphCabMenu_ddlBairros'
+            );
+
+            const formulario = document.querySelector('form');
+
+            const elementosPossiveisResultado = Array.from(
+                document.querySelectorAll(
+                    '[id*="grid" i], [id*="grd" i], [id*="result" i], ' +
+                    '[id*="prestador" i], [id*="lista" i]'
+                )
+            ).map(elemento => ({
+                tag: elemento.tagName,
+                id: elemento.id || null,
+                classe: elemento.className || null,
+                texto: String(elemento.innerText || '')
+                    .replace(/\s+/g, ' ')
+                    .trim()
+                    .slice(0, 500)
+            }));
+
+            return {
+                bairroSelecionado: bairro?.value || null,
+                bairroTexto:
+                    bairro?.options?.[bairro.selectedIndex]?.text || null,
+
+                botao: botao
+                    ? {
+                        tag: botao.tagName,
+                        texto: botao.innerText?.trim() || null,
+                        href: botao.getAttribute('href'),
+                        onclick: botao.getAttribute('onclick')
+                    }
+                    : null,
+
+                formulario: formulario
+                    ? {
+                        action: formulario.getAttribute('action'),
+                        method: formulario.getAttribute('method')
+                    }
+                    : null,
+
+                eventTarget:
+                    document.querySelector('#__EVENTTARGET')?.value || null,
+
+                quantidadeTabelas:
+                    document.querySelectorAll('table').length,
+
+                elementosPossiveisResultado
+            };
+        });
+
+        // page.evaluate()
 
         const dados = await page.evaluate(({ limiteSeguro }) => {
+
             function limpar(valor) {
                 return String(valor || '')
                     .replace(/\s+/g, ' ')
@@ -288,7 +345,6 @@ app.post('/buscar', validarApiKey, async (req, res) => {
                     texto: limpar(linha.innerText)
                 };
             });
-
 
             const regexDocumento =
                 /(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})|(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2})/;
@@ -364,6 +420,7 @@ app.post('/buscar', validarApiKey, async (req, res) => {
             diagnostico: {
                 titulo: dados.titulo,
                 url: dados.url,
+                postback: diagnosticoPostback,
                 tabelas: dados.tabelas,
                 links: dados.links,
                 textoPagina: dados.textoPagina
