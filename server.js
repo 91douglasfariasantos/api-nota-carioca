@@ -383,6 +383,27 @@ app.post('/buscar', validarApiKey, async (req, res) => {
                         );
                     });
 
+                    const linkEmail = links.find(link =>
+                        String(link.href || '')
+                            .toLowerCase()
+                            .startsWith('mailto:')
+                    );
+
+                    const textoCompleto = limpar(linha.innerText);
+
+                    const emailEncontradoNoTexto =
+                        textoCompleto.match(
+                            /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+                        )?.[0] || null;
+
+                    const email =
+                        linkEmail?.href
+                            ?.replace(/^mailto:/i, '')
+                            .split('?')[0]
+                            .trim() ||
+                        emailEncontradoNoTexto ||
+                        null;
+
                     const linkMapa = links.find(link =>
                         String(link.href || '').toLowerCase().includes('map')
                     );
