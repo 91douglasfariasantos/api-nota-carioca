@@ -349,26 +349,62 @@ app.post('/buscar', validarApiKey, async (req, res) => {
             const regexDocumento =
                 /(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})|(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2})/;
 
-            const linhas = todasAsLinhas
-                .filter(linha => regexDocumento.test(linha.texto))
-                .map(linha => {
-                    const documentoEncontrado =
-                        linha.texto.match(regexDocumento)?.[0] || '';
+            const linhas = Array.from(
+                document.querySelectorAll(
+                    '#ctl00_cphCabMenu_gvPrestadores tr'
+                )
+            )
+                .map((linha, indice) => {
+                    const campoPrestador = linha.querySelector(
+                        '[id$="_lbPrestador"]'
+                    );
 
-                    const documentoNumerico =
-                        documentoEncontrado.replace(/\D/g, '');
+                    if (!campoPrestador) {
+                        return null;
+                    }
+
+                    const celulas = Array.from(
+                        linha.querySelectorAll('td')
+                    ).map(celula => limpar(celula.innerText));
+
+                    const links = Array.from(
+                        linha.querySelectorAll('a')
+                    ).map(link => ({
+                        texto: limpar(link.innerText),
+                        href: link.getAttribute('href')
+                    }));
+
+                    const linkSite = links.find(link => {
+                        const href = String(link.href || '');
+
+                        return (
+                            href.startsWith('http://') ||
+                            href.startsWith('https://')
+                        );
+                    });
+
+                    const linkMapa = links.find(link =>
+                        String(link.href || '').toLowerCase().includes('map')
+                    );
+
+                    const textoPrestador = limpar(
+                        campoPrestador.innerText
+                    );
+
+                    const cepEncontrado =
+                        textoPrestador.match(/CEP:\s*(\d{8})/i)?.[1] || null;
 
                     return {
-                        indice: linha.indice,
-                        documento: documentoEncontrado,
-                        documentoNumerico,
-                        tipoDocumento:
-                            documentoNumerico.length === 14 ? 'CNPJ' : 'CPF',
-                        celulas: linha.celulas,
-                        texto: linha.texto
+                        indice,
+                        prestador: textoPrestador,
+                        cep: cepEncontrado,
+                        site: linkSite?.href || null,
+                        mapa: linkMapa?.href || null,
+                        celulas,
+                        texto: limpar(linha.innerText)
                     };
                 })
-                .filter(linha => linha.tipoDocumento === 'CNPJ')
+                .filter(Boolean)
                 .slice(0, limiteSeguro);
 
             const tabelas = Array.from(
