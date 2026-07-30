@@ -101,15 +101,37 @@ async function extrairPrestadores(page, limiteSeguro) {
 
         if (!campoPrestador) return null;
 
-        const celulas = Array.from(
+        const celulasElementos = Array.from(
           linha.querySelectorAll('td')
-        ).map((celula) => limpar(celula.innerText));
+        );
+
+        const primeiraCelula = celulasElementos[0];
+        const segundaCelula = celulasElementos[1];
+
+        const tituloDocumento =
+          primeiraCelula?.getAttribute('title') || '';
+
+        const documento =
+          tituloDocumento
+            .match(
+              /(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})|(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2})/
+            )?.[0] || null;
+
+        const bairroExtraido = limpar(
+          segundaCelula?.innerText
+        );
+
+        const celulas = celulasElementos.map(
+          (celula) => limpar(celula.innerText)
+        );
 
         const links = Array.from(
           linha.querySelectorAll('a')
         ).map((link) => ({
           texto: limpar(link.innerText),
-          href: link.getAttribute('href')
+          href: link.getAttribute('href'),
+          onclick: link.getAttribute('onclick'),
+          title: link.getAttribute('title')
         }));
 
         const linkEmail = links.find((link) =>
@@ -117,16 +139,6 @@ async function extrairPrestadores(page, limiteSeguro) {
             .toLowerCase()
             .startsWith('mailto:')
         );
-
-        const linkMapa = links.find((link) => {
-          const href = String(link.href || '').toLowerCase();
-          return (
-            href.includes('maps.google') ||
-            href.includes('google.com/maps') ||
-            href.includes('mapa') ||
-            href.includes('gmaps')
-          );
-        });
 
         const linkSite = links.find((link) => {
           const href = String(link.href || '');
@@ -136,13 +148,38 @@ async function extrairPrestadores(page, limiteSeguro) {
             /^https?:\/\//i.test(href) &&
             !normalizado.includes('maps.google') &&
             !normalizado.includes('google.com/maps') &&
-            !normalizado.includes('mapa') &&
             !normalizado.includes('gmaps')
           );
         });
 
+        const linkLocalizacao = linha.querySelector(
+          '[id$="_hlLocalizacao"]'
+        );
+
+        const onclickLocalizacao =
+          linkLocalizacao?.getAttribute('onclick') || '';
+
+        const caminhoDetalhes =
+          onclickLocalizacao.match(
+            /window\.open\(['"]([^'"]+)/
+          )?.[1] || null;
+
+        const inscricao =
+          caminhoDetalhes
+            ?.match(/[?&]inscricao=(\d+)/i)?.[1] ||
+          null;
+
+        const detalhesUrl = caminhoDetalhes
+          ? new URL(
+            caminhoDetalhes,
+            window.location.origin
+          ).href
+          : null;
+
         const textoCompleto = limpar(linha.innerText);
-        const textoPrestador = limpar(campoPrestador.innerText);
+        const textoPrestador = limpar(
+          campoPrestador.innerText
+        );
 
         const emailNoTexto =
           textoCompleto.match(
@@ -162,19 +199,29 @@ async function extrairPrestadores(page, limiteSeguro) {
             /CEP:\s*(\d{5}-?\d{3})/i
           )?.[1]?.replace(/\D/g, '') || null;
 
-        const documento =
-          textoCompleto.match(
-            /(?:\d{2}\.?\d{3}\.?\d{3}\/?\d{4}-?\d{2})|(?:\d{3}\.?\d{3}\.?\d{3}-?\d{2})/
-          )?.[0] || null;
+        const nomeMascarado = limpar(
+          campoPrestador.querySelector('b')?.innerText
+        ) || null;
+
+        const endereco = textoPrestador
+          .replace(/^\*+\s*/, '')
+          .trim();
 
         return {
           indice,
-          prestador: textoPrestador,
+          nome: null,
+          nomeMascarado,
+          prestador: endereco,
+          endereco,
           documento,
+          cnpj: documento,
+          bairro: bairroExtraido,
           cep,
+          inscricao,
+          detalhesUrl,
           site: linkSite?.href || null,
           email,
-          mapa: linkMapa?.href || null,
+          mapa: detalhesUrl,
           celulas,
           texto: textoCompleto
         };
@@ -187,6 +234,64 @@ async function extrairPrestadores(page, limiteSeguro) {
       url: window.location.href,
       linhas
     };
+  }, { limiteSeguro });
+}
+
+const linkSite = links.find((link) => {
+  const href = String(link.href || '');
+  const normalizado = href.toLowerCase();
+
+  return (
+    /^https?:\/\//i.test(href) &&
+    !normalizado.includes('maps.google') &&
+    !normalizado.includes('google.com/maps') &&
+    !normalizado.includes('mapa') &&
+    !normalizado.includes('gmaps')
+  );
+});
+
+const textoCompleto = limpar(linha.innerText);
+const textoPrestador = limpar(campoPrestador.innerText);
+
+const emailNoTexto =
+  textoCompleto.match(
+    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
+  )?.[0] || null;
+
+const email =
+  linkEmail?.href
+    ?.replace(/^mailto:/i, '')
+    .split('?')[0]
+    .trim() ||
+  emailNoTexto ||
+  null;
+
+const cep =
+  textoPrestador.match(
+    /CEP:\s*(\d{5}-?\d{3})/i
+  )?.[1]?.replace(/\D/g, '') || null;
+
+
+return {
+  indice,
+  prestador: textoPrestador,
+  documento,
+  cep,
+  site: linkSite?.href || null,
+  email,
+  mapa: linkMapa?.href || null,
+  celulas,
+  texto: textoCompleto
+};
+      })
+      .filter(Boolean)
+  .slice(0, limiteSeguro);
+
+return {
+  titulo: document.title,
+  url: window.location.href,
+  linhas
+};
   }, { limiteSeguro });
 }
 
