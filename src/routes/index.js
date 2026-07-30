@@ -7,11 +7,19 @@ const router = express.Router();
 router.get('/', controller.home);
 router.get('/health', controller.health);
 router.get('/categorias', validarApiKey, controller.categorias);
+
 router.get(
   '/teste-navegador',
   validarApiKey,
   controller.testeNavegador
 );
+
 router.post('/buscar', validarApiKey, controller.buscar);
+
+router.post(
+  '/diagnosticar',
+  validarApiKey,
+  controller.diagnosticar
+);
 
 module.exports = router;

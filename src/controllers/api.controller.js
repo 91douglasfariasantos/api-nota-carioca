@@ -6,7 +6,8 @@ const {
 const {
   aplicarFiltros,
   consultarPrestadores,
-  extrairPrestadores
+  extrairPrestadores,
+  diagnosticarPrimeiraLinha
 } = require('../services/notaCarioca.service');
 const {
   enriquecerEmails
@@ -22,7 +23,8 @@ function home(req, res) {
       health: 'GET /health',
       categorias: 'GET /categorias',
       testeNavegador: 'GET /teste-navegador',
-      buscar: 'POST /buscar'
+      buscar: 'POST /buscar',
+      diagnosticar: 'POST /diagnosticar'
     }
   });
 }
@@ -138,11 +140,60 @@ async function buscar(req, res, next) {
     }
   }
 }
+async function diagnosticar(req, res, next) {
+  let browser;
+
+  try {
+    const {
+      categoria = '',
+      bairro = '',
+      nome = '',
+      cnpj = ''
+    } = req.body || {};
+
+    const navegador = await criarNavegador();
+    browser = navegador.browser;
+
+    const { page } = navegador;
+
+    await abrirNotaCarioca(page);
+
+    await aplicarFiltros(page, {
+      categoria,
+      bairro,
+      nome,
+      cnpj
+    });
+
+    await consultarPrestadores(page);
+
+    const diagnostico = await diagnosticarPrimeiraLinha(page);
+
+    return res.json({
+      sucesso: true,
+      filtros: {
+        categoria,
+        bairro,
+        nome,
+        cnpj
+      },
+      diagnostico,
+      data: new Date().toISOString()
+    });
+  } catch (error) {
+    return next(error);
+  } finally {
+    if (browser) {
+      await browser.close().catch(() => null);
+    }
+  }
+}
 
 module.exports = {
   home,
   health,
   categorias,
   testeNavegador,
-  buscar
+  buscar,
+  diagnosticar
 };

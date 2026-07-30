@@ -190,9 +190,45 @@ async function extrairPrestadores(page, limiteSeguro) {
   }, { limiteSeguro });
 }
 
+async function diagnosticarPrimeiraLinha(page) {
+  return page.evaluate(() => {
+    const linha = document.querySelector(
+      '#ctl00_cphCabMenu_gvPrestadores tr:nth-child(2)'
+    );
+
+    if (!linha) {
+      return {
+        encontrada: false,
+        mensagem: 'Nenhuma linha de resultado encontrada'
+      };
+    }
+
+    return {
+      encontrada: true,
+      texto: linha.innerText,
+      html: linha.innerHTML,
+      elementos: Array.from(
+        linha.querySelectorAll('*')
+      ).map((elemento) => ({
+        tag: elemento.tagName,
+        id: elemento.id || null,
+        classe:
+          typeof elemento.className === 'string'
+            ? elemento.className
+            : null,
+        texto: elemento.innerText?.trim() || '',
+        href: elemento.getAttribute('href'),
+        title: elemento.getAttribute('title')
+      }))
+    };
+  });
+}
+
 module.exports = {
   obterIdCategoria,
   aplicarFiltros,
   consultarPrestadores,
-  extrairPrestadores
+  extrairPrestadores,
+  diagnosticarPrimeiraLinha
 };
+
