@@ -12,7 +12,6 @@ function obterIdCategoria(categoria) {
 
   return null;
 }
-
 async function aplicarFiltros(page, filtros) {
   const { categoria, bairro, nome, cnpj } = filtros;
 
@@ -99,7 +98,9 @@ async function extrairPrestadores(page, limiteSeguro) {
           '[id$="_lbPrestador"]'
         );
 
-        if (!campoPrestador) return null;
+        if (!campoPrestador) { 
+          return null;
+      }
 
         const celulasElementos = Array.from(
           linha.querySelectorAll('td')
@@ -236,65 +237,6 @@ async function extrairPrestadores(page, limiteSeguro) {
     };
   }, { limiteSeguro });
 }
-
-const linkSite = links.find((link) => {
-  const href = String(link.href || '');
-  const normalizado = href.toLowerCase();
-
-  return (
-    /^https?:\/\//i.test(href) &&
-    !normalizado.includes('maps.google') &&
-    !normalizado.includes('google.com/maps') &&
-    !normalizado.includes('mapa') &&
-    !normalizado.includes('gmaps')
-  );
-});
-
-const textoCompleto = limpar(linha.innerText);
-const textoPrestador = limpar(campoPrestador.innerText);
-
-const emailNoTexto =
-  textoCompleto.match(
-    /[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/i
-  )?.[0] || null;
-
-const email =
-  linkEmail?.href
-    ?.replace(/^mailto:/i, '')
-    .split('?')[0]
-    .trim() ||
-  emailNoTexto ||
-  null;
-
-const cep =
-  textoPrestador.match(
-    /CEP:\s*(\d{5}-?\d{3})/i
-  )?.[1]?.replace(/\D/g, '') || null;
-
-
-return {
-  indice,
-  prestador: textoPrestador,
-  documento,
-  cep,
-  site: linkSite?.href || null,
-  email,
-  mapa: linkMapa?.href || null,
-  celulas,
-  texto: textoCompleto
-};
-      })
-      .filter(Boolean)
-  .slice(0, limiteSeguro);
-
-return {
-  titulo: document.title,
-  url: window.location.href,
-  linhas
-};
-  }, { limiteSeguro });
-}
-
 async function diagnosticarPrimeiraLinha(page) {
   return page.evaluate(() => {
     const linha = document.querySelector(
